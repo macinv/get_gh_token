@@ -39,11 +39,10 @@ EXPIRY=$(echo "$RESPONSE" | grep -o '"expires_at": *"[^"]*' | cut -d'"' -f4)
 if [[ -z "$TOKEN" ]]; then
   echo "❌ Failed to fetch token:"
   echo "$RESPONSE"
-  exit 1
+else
+  # Export token into the current shell
+  GITHUB_TOKEN="$TOKEN"
+
+  echo "✅ GITHUB_TOKEN has been set"
+  echo "   Expires at: $EXPIRY"
 fi
-
-# Export token into the current shell
-GITHUB_TOKEN="$TOKEN"
-
-echo "✅ GITHUB_TOKEN has been set"
-echo "   Expires at: $EXPIRY"
