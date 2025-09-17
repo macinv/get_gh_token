@@ -13,7 +13,7 @@ fi
 # Generate JWT
 NOW=$(date +%s)
 IAT=$((NOW - 60))    # issued-at: 60 seconds ago
-EXP=$((NOW + 600))   # expires-at: 10 minutes later
+EXP=$((NOW + 300))   # expires-at: 5 minutes later
 
 b64() {
   openssl base64 -A | tr -d '=' | tr '/+' '_-'
