@@ -11,7 +11,9 @@
 #
 # It is sourced straight into callers' build shells, so it deliberately does
 # not `set -euo pipefail` (that would change the caller's own failure
-# behaviour) and handles every exit status explicitly instead. A failed mint
+# behaviour) and handles every exit status explicitly instead -- including the
+# `|| true` on pipelines that may legitimately match nothing, since a caller
+# that *has* set -e/pipefail is killed by them otherwise. A failed mint
 # exits non-zero, which fails the caller's step at the mint rather than at the
 # next command that needed the token.
 
@@ -62,7 +64,7 @@ GH_TOKEN_HEADERS=$(mktemp "${TMPDIR:-/tmp}/gh_token_headers.XXXXXX") || {
 
 # _gh_token_header NAME: that header from the last response, or empty.
 _gh_token_header() {
-  grep -i "^$1:" "$GH_TOKEN_HEADERS" 2>/dev/null | tail -1 | cut -d: -f2- | sed 's/^[[:space:]]*//' | tr -d '\r'
+  grep -i "^$1:" "$GH_TOKEN_HEADERS" 2>/dev/null | tail -1 | cut -d: -f2- | sed 's/^[[:space:]]*//' | tr -d '\r' || true
 }
 
 # _gh_token_redact TEXT: TEXT with any "token" value masked.
@@ -87,7 +89,7 @@ _gh_token_context() {
   elif [[ -z "$gh_date" ]]; then
     echo "   Clocks: runner $(_gh_token_utc "$now"); GitHub sent no Date header"
   else
-    gh_epoch=$(date -u -d "$gh_date" +%s 2>/dev/null || date -u -j -f '%a, %d %b %Y %T GMT' "$gh_date" +%s 2>/dev/null)
+    gh_epoch=$(date -u -d "$gh_date" +%s 2>/dev/null || date -u -j -f '%a, %d %b %Y %T GMT' "$gh_date" +%s 2>/dev/null || true)
     if [[ -n "$gh_epoch" ]]; then
       skew=$((now - gh_epoch))
       if [[ $skew -ge 0 ]]; then
@@ -151,8 +153,8 @@ done
 TOKEN=""
 EXPIRY=""
 if [[ $CURL_RC -eq 0 && "$HTTP_STATUS" == 2* ]]; then
-  TOKEN=$(printf '%s' "$BODY" | grep -o '"token": *"[^"]*' | cut -d'"' -f4)
-  EXPIRY=$(printf '%s' "$BODY" | grep -o '"expires_at": *"[^"]*' | cut -d'"' -f4)
+  TOKEN=$(printf '%s' "$BODY" | grep -o '"token": *"[^"]*' | cut -d'"' -f4 || true)
+  EXPIRY=$(printf '%s' "$BODY" | grep -o '"expires_at": *"[^"]*' | cut -d'"' -f4 || true)
 fi
 
 if [[ -z "$TOKEN" ]]; then
